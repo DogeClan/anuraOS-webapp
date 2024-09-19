@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     clang \
     gcc \
+    g++ \ 
     inotify-tools \
     openjdk-17-jdk \
     gnupg2 \
@@ -18,9 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     lsb-release \
     sudo \
-    docker.io \
     expect \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Docker using the official script
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh && \
+    rm get-docker.sh
 
 # Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
@@ -36,7 +41,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Clone the repository
 RUN git clone --recursive https://github.com/MercuryWorkshop/anuraOS /app
 
-# Add the new user and make sure they have sudo access
+# Create a new user and give them sudo access
 RUN useradd -m USER && echo "USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Add USER to the Docker group
@@ -45,16 +50,16 @@ RUN usermod -aG docker USER
 # Change ownership of the /app directory to the new user
 RUN chown -R USER:USER /app
 
+# Switch to the new user
+USER USER
+
 # Run 'make all' without user input, and 'make rootfs' with input "2"
-RUN make all && \
+RUN make all -B && \
     expect -c ' \
     spawn make rootfs; \
     expect "Choose an option"; \
     send "2\r"; \
     expect eof;'
-
-# Switch to the new user
-USER USER
 
 # Expose the application port
 EXPOSE 8000
