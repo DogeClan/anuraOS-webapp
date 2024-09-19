@@ -28,10 +28,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    rustup target add wasm32-unknown-unknown
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# Set the path for cargo binaries
+# Set the path for cargo binaries and make it persistent
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Clone the repository
