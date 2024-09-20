@@ -1,72 +1,55 @@
-# Use the official Docker-in-Docker image
-FROM docker:20.10-dind
+# Use the latest Debian image
+FROM debian:latest
 
-# Set the working directory
-WORKDIR /app
+# Set environment variables for non-interactive installs
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install necessary packages
-RUN apk add --no-cache \
-    git \
-    curl \
+# Update package list and install dependencies
+RUN apt-get update && \
+    apt-get install -y \
     wget \
+    openjdk-11-jdk \
+    inotify-tools \
+    git \
+    python3 \
+    python3-pip \
+    sudo \
+    docker.io \
     make \
     clang \
     gcc \
     g++ \
-    inotify-tools \
-    openjdk17 \
-    gnupg \
-    util-linux \
-    jq \
-    sudo \
-    nodejs \
-    npm \ 
-    bash \  
-    python3 \ 
-    py3-pip 
+    curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm
 
 # Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && ln -s /root/.cargo/bin/rustc /usr/local/bin/ \
-    && ln -s /root/.cargo/bin/cargo /usr/local/bin/
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    source $HOME/.cargo/env
 
-# Set the path for cargo binaries
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Create a user named $USER with root access
+RUN useradd -m -s /bin/bash $USER && \
+    echo "$USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    usermod -aG docker $USER
+
+# Set permissions for the Docker socket
+RUN chmod 666 /var/run/docker.sock
 
 # Clone the repository
-RUN git clone --recursive https://github.com/MercuryWorkshop/anuraOS /app
+RUN git clone --recursive https://github.com/MercuryWorkshop/anuraOS.git /anuraOS
 
-# Create a new user and give them sudo access
-RUN adduser -D USER && echo "USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Set the working directory
+WORKDIR /anuraOS
 
-# Ensure the Docker group exists and add USER to it
-RUN addgroup docker || true && adduser USER docker
+# Build the repository
+RUN make all
 
-# Change ownership of the /app directory to the new user
-RUN chown -R USER:USER /app
+# Automate the input for make rootfs
+RUN echo "2" | make rootfs
 
-# Add the dind-entrypoint.sh script directly into the Dockerfile
-RUN echo '#!/bin/sh\n\
-set -e\n\
-\n\
-# Start Docker daemon in the background\n\
-dockerd &\n\
-\n\
-# Wait for Docker to start\n\
-sleep 5\n\
-\n\
-# Execute the CMD command passed to the container\n\
-exec "$@"' > /usr/local/bin/dind-entrypoint.sh && \
-    chmod +x /usr/local/bin/dind-entrypoint.sh
-
-# IMPORTANT: Run make all and automatically send '2' for make rootfs
-RUN make all -B && (echo "2" | make rootfs V=1)
-
-# Switch to the new user
-USER USER
-
-# Expose the Docker daemon and application port
-EXPOSE 2375 8000
-
-# Default command to run the application
+# Command to run the server
 CMD ["make", "server"]
