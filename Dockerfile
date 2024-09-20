@@ -14,6 +14,7 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     sudo \
+    jq \
     docker.io \
     make \
     uuid \
@@ -48,9 +49,6 @@ WORKDIR /anuraOS
 
 # Build the repository
 RUN make all
-
-# Automate the input for make rootfs
-RUN echo "2" | make rootfs
 
 # Command to run the server
 CMD ["make", "server"]
