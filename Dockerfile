@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y \
     wget \
-    openjdk-11-jdk \
+    openjdk-17-jdk \
     inotify-tools \
     git \
     python3 \
@@ -16,6 +16,8 @@ RUN apt-get update && \
     sudo \
     docker.io \
     make \
+    uuid \
+    uuid-runtime \
     clang \
     gcc \
     g++ \
@@ -28,16 +30,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     npm install -g npm
 
 # Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    source $HOME/.cargo/env
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-# Create a user named $USER with root access
-RUN useradd -m -s /bin/bash $USER && \
-    echo "$USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    usermod -aG docker $USER
+# Set the PATH for Cargo binaries
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Set permissions for the Docker socket
-RUN chmod 666 /var/run/docker.sock
+# Create a user named USER with root access
+RUN useradd -m -s /bin/bash USER && \
+    echo "USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    usermod -aG docker USER
 
 # Clone the repository
 RUN git clone --recursive https://github.com/MercuryWorkshop/anuraOS.git /anuraOS
