@@ -14,7 +14,6 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     sudo \
-    jq \
     docker.io \
     make \
     uuid \
@@ -49,6 +48,9 @@ WORKDIR /anuraOS
 
 # Build the repository
 RUN make all
+
+# Create a temporary input file for make rootfs
+RUN echo "2" > input.txt && make rootfs < input.txt && rm input.txt
 
 # Command to run the server
 CMD ["make", "server"]
