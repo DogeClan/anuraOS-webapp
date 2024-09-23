@@ -14,7 +14,6 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     sudo \
-    docker.io \
     make \
     uuid \
     uuid-runtime \
@@ -47,10 +46,7 @@ RUN git clone --recursive https://github.com/MercuryWorkshop/anuraOS.git /anuraO
 WORKDIR /anuraOS
 
 # Build the repository
-RUN make all
-
-# Create a temporary input file for make rootfs
-RUN echo "2" > input.txt && make rootfs < input.txt && rm input.txt
+RUN make all -B
 
 # Command to run the server
 CMD ["make", "server"]
